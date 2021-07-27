@@ -8,10 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	appsv1 "k8s.io/api/apps/v1"
-	apiv1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -139,127 +136,43 @@ func exitErrorf(msg string, args ...interface{}) {
 // 	return nil
 // }
 
-// func launchK8sPod(clientset *kubernetes.Clientset, podName *string, image *string, cmd *string) {
-// 	pods := clientset.CoreV1().Pods("kube-system")
+func launchK8sPod(clientset *kubernetes.Clientset, podName *string, image *string, cmd *string) {
+	pods := clientset.CoreV1().Pods("kube-system")
 
-// 	podSpec := &v1.Pod{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      *podName,
-// 			Namespace: "kube-system",
-// 		},
-// 		Spec: v1.PodSpec{
-// 			Containers: []v1.Container{
-// 				{
-// 					Name:  *podName,
-// 					Image: *image,
-// 					Ports: []v1.ContainerPort{
-// 						{
-// 							ContainerPort: 8080,
-// 						},
-// 					},
-// 					VolumeMounts: []v1.VolumeMount{
-// 						{
-// 							Name:      "project",
-// 							MountPath: "/home/abhishek/Downloads/my-project",
-// 						},
-// 					},
-// 				},
-// 			},
-// 			Volumes: []v1.Volume{
-// 				{
-// 					Name: "project",
-// 					VolumeSource: {
-// 						v1.HostPathVolumeSource: {
-// 							Type: *v1.HostPathDirectoryOrCreate,
-// 							Path: "/home/abhishek/Downloads/rest-scripts",
-// 						},
-// 					},
-// 				},
-// 			},
-// 			RestartPolicy: v1.RestartPolicyAlways,
-// 		},
-// 	}
-
-// 	_, err := pods.Create(context.Background(), podSpec, metav1.CreateOptions{})
-// 	if err != nil {
-// 		exitErrorf("Failed to create K8s pod, %v", err)
-// 		log.Fatalln("Failed to create K8s pod, ", err)
-// 	}
-
-// 	//print job details
-// 	log.Println("Created K8s pod successfully")
-// }
-
-func launchK8sDeployment(clientset *kubernetes.Clientset, deploymentName *string, image *string, cmd *string) {
-
-	deploymentsClient := clientset.AppsV1().Deployments("infra")
-
-	deployment := &appsv1.Deployment{
+	podSpec := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      *deploymentName,
-			Namespace: "infra",
-			Labels: map[string]string{
-				"app": *deploymentName,
-			},
+			Name:      *podName,
+			Namespace: "kube-system",
 		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app":       *deploymentName,
-					"component": *deploymentName,
-				},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app":       *deploymentName,
-						"component": *deploymentName,
-					},
-					Annotations: map[string]string{
-						"sidecar.istio.io/inject": "false",
-					},
-				},
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:  *podName,
+					Image: *image,
+					Ports: []v1.ContainerPort{
 						{
-							Name:            *deploymentName,
-							Image:           *image,
-							ImagePullPolicy: apiv1.PullAlways,
-							Ports: []apiv1.ContainerPort{
-								{
-									Name:          *deploymentName,
-									ContainerPort: 8080,
-								},
-							},
-							Resources: apiv1.ResourceRequirements{
-								Requests: apiv1.ResourceList{
-									apiv1.ResourceCPU:    resource.MustParse("500m"),
-									apiv1.ResourceMemory: resource.MustParse("512Mi"),
-								},
-								Limits: apiv1.ResourceList{
-									apiv1.ResourceCPU:    resource.MustParse("500m"),
-									apiv1.ResourceMemory: resource.MustParse("512Mi"),
-								},
-							},
+							ContainerPort: 8080,
+						},
+					},
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "project",
+							MountPath: "/home/abhishek/Downloads/my-project",
 						},
 					},
 				},
 			},
+			RestartPolicy: v1.RestartPolicyAlways,
 		},
 	}
 
-	// Create Deployment
-	fmt.Println("Creating deployment...")
-	result, err := deploymentsClient.Create(context.TODO(), deployment, metav1.CreateOptions{})
+	_, err := pods.Create(context.Background(), podSpec, metav1.CreateOptions{})
 	if err != nil {
-		exitErrorf("Failed to create K8s deployment, %v", err)
-		log.Fatalln("Failed to create K8s deployment, ", err)
+		exitErrorf("Failed to create K8s pod, %v", err)
+		log.Fatalln("Failed to create K8s pod, ", err)
 	}
-	fmt.Printf("Created deployment %q.\n", result.GetObjectMeta().GetName())
 
-	//print job details
-	log.Println("Created K8s deployment successfully")
+	log.Println("Created K8s pod successfully")
 }
 
 func main() {
@@ -327,47 +240,6 @@ func main() {
 
 	flag.Parse()
 
-	launchK8sDeployment(clientset, jobName, containerImage, entryCommand)
+	launchK8sPod(clientset, jobName, containerImage, entryCommand)
 
-	//launchK8sIngress(clientset, "coder-x-ingress", entryCommand)
 }
-
-func launchK8sIngress(clientset *kubernetes.Clientset, ingressName string, cmd *string) {
-
-	ingressClient := clientset.ExtensionsV1beta1().Ingresses("infra")
-
-	ingress := &v1beta1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: ingressName,
-			Annotations: map[string]string{
-				"kubernetes.io/ingress.class":               "alb",
-				"alb.ingress.kubernetes.io/security-groups": "sg-091a5b18c9896ce28",
-				"alb.ingress.kubernetes.io/scheme":          "internet-facing",
-				"alb.ingress.kubernetes.io/target-type":     "ip",
-				"alb.ingress.kubernetes.io/group.name":      "default",
-				"alb.ingress.kubernetes.io/listen-ports":    "[{\"HTTPS\":443}]",
-			},
-		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{
-				{
-					Host: "coder-x.dev.nslhub.click",
-				},
-			},
-		},
-	}
-
-	// Create Deployment
-	fmt.Println("Creating Ingress...")
-	result, err := ingressClient.Create(context.TODO(), ingress, metav1.CreateOptions{})
-	if err != nil {
-		exitErrorf("Failed to create K8s ingress, %v", err)
-		log.Fatalln("Failed to create K8s ingress, ", err)
-	}
-	fmt.Printf("Created ingress %q.\n", result.GetObjectMeta().GetName())
-
-	//print job details
-	log.Println("Created K8s ingress successfully")
-}
-
-func int32Ptr(i int32) *int32 { return &i }
