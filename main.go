@@ -174,6 +174,7 @@ func launchK8sPod(clientset *kubernetes.Clientset, podName *string, image *strin
 					VolumeSource: v1.VolumeSource{
 						HostPath: &v1.HostPathVolumeSource{
 							Path: "/home/abhishek/Downloads/rest-scripts",
+							Type: (*v1.HostPathType)(strptr("DirectoryOrCreate")),
 						},
 					},
 				},
@@ -208,12 +209,6 @@ func main() {
 	// DownloadObject(bucket, item, region)
 
 	// fmt.Println(Unzip("./my-project.zip", "./myproject"))
-
-	// Kube-client
-
-	// rules := clientcmd.NewDefaultClientConfigLoadingRules()
-	// kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, &clientcmd.ConfigOverrides{})
-	// config, err := kubeconfig.ClientConfig()
 
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -259,3 +254,5 @@ func main() {
 	launchK8sPod(clientset, jobName, containerImage, entryCommand)
 
 }
+
+func strptr(str string) *string { return &str }
