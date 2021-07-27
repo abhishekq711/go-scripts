@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+ name: code-server
+ namespace: infra
+spec:
+  selector:
+    app: code-server
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30001
+      name: code-server
+      protocol: TCP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-server
+  namespace: infra
+spec:
+  selector:
+    matchLabels:
+      app: code-server
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: code-server
+    spec:
+      containers:
+      - name: code-server
+        image: codercom/code-server
+        imagePullPolicy: Always
+        command: 
+          ["code-server", "--auth", "password", "--bind-addr", "0.0.0.0:8080"]
+        ports:
+          - containerPort: 8080
+        env:
+          - name: PASSWORD
+            value: "mypass"
+        volumeMounts:
+          - name: project
+            mountPath: /home/abhishek/Downloads/my-project/
+      volumes:
+        - name: project
+          hostPath:
+            path: /home/abhishek/Downloads/rest-scripts
