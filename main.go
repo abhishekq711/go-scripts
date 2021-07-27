@@ -308,8 +308,6 @@ func main() {
 		panic(err.Error())
 	}
 
-	// clientset := kubernetes.NewForConfigOrDie(config)
-
 	nodeList, err := clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 
 	if err != nil {
