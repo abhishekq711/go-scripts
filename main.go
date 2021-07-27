@@ -18,11 +18,14 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
+// FIXME: start with using logging library, like zap
+
 func exitErrorf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
 }
 
+// FIXME: we don't need all s3 bucket, infact, start with a config file through the same you can get the configured s3 bucket content and the path
 // func getS3Buckets(region string) {
 // 	sess, err := session.NewSession(&aws.Config{
 // 		Region: aws.String(region)},
@@ -32,6 +35,7 @@ func exitErrorf(msg string, args ...interface{}) {
 // 		exitErrorf("Unable to create a new session, %v", err)
 // 	}
 
+// FIXME: use a struct for the client, the clients are singleton use the calls as `func (s3client *S3) getProdjectCode(bucket, project)
 // 	// Create S3 service client
 // 	svc := s3.New(sess)
 
@@ -40,6 +44,7 @@ func exitErrorf(msg string, args ...interface{}) {
 // 		exitErrorf("Unable to list buckets, %v", err)
 // 	}
 
+// FIXME: cleanup bucket discovery
 // 	fmt.Println("Buckets:")
 
 // 	for _, b := range result.Buckets {
@@ -56,7 +61,7 @@ func exitErrorf(msg string, args ...interface{}) {
 // 	}
 
 // 	defer file.Close()
-
+// FIXME, use session as struct outside method call
 // 	sess, _ := session.NewSession(&aws.Config{
 // 		Region: aws.String(region)},
 // 	)
@@ -139,6 +144,7 @@ func exitErrorf(msg string, args ...interface{}) {
 // 	return nil
 // }
 
+// TODO: the below code snippet looks good
 // func launchK8sPod(clientset *kubernetes.Clientset, podName *string, image *string, cmd *string) {
 // 	pods := clientset.CoreV1().Pods("kube-system")
 
@@ -190,11 +196,12 @@ func exitErrorf(msg string, args ...interface{}) {
 // 	log.Println("Created K8s pod successfully")
 // }
 
-func launchK8sDeployment(clientset *kubernetes.Clientset, deploymentName *string, image *string, cmd *string) {
+// FIXME:// need pod, if can't use above use atleast Replicaset
+func launchK8sReplicaSet(clientset *kubernetes.Clientset, deploymentName *string, image *string, cmd *string) {
 
-	deploymentsClient := clientset.AppsV1().Deployments("infra")
+	client := clientset.AppsV1().ReplicaSet("infra")
 
-	deployment := &appsv1.Deployment{
+	pod := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      *deploymentName,
 			Namespace: "infra",
@@ -202,7 +209,7 @@ func launchK8sDeployment(clientset *kubernetes.Clientset, deploymentName *string
 				"app": *deploymentName,
 			},
 		},
-		Spec: appsv1.DeploymentSpec{
+		Spec: appsv1.ReplicaSetSpec{
 			Replicas: int32Ptr(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -232,6 +239,7 @@ func launchK8sDeployment(clientset *kubernetes.Clientset, deploymentName *string
 									ContainerPort: 8080,
 								},
 							},
+							// TODO: Add volume mount and volumes
 							Resources: apiv1.ResourceRequirements{
 								Requests: apiv1.ResourceList{
 									apiv1.ResourceCPU:    resource.MustParse("500m"),
@@ -251,7 +259,7 @@ func launchK8sDeployment(clientset *kubernetes.Clientset, deploymentName *string
 
 	// Create Deployment
 	fmt.Println("Creating deployment...")
-	result, err := deploymentsClient.Create(context.TODO(), deployment, metav1.CreateOptions{})
+	result, err := client.Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		exitErrorf("Failed to create K8s deployment, %v", err)
 		log.Fatalln("Failed to create K8s deployment, ", err)
@@ -261,6 +269,8 @@ func launchK8sDeployment(clientset *kubernetes.Clientset, deploymentName *string
 	//print job details
 	log.Println("Created K8s deployment successfully")
 }
+
+// TODO: att httpserver which can take a path like /{project}
 
 func main() {
 
@@ -329,11 +339,14 @@ func main() {
 
 	flag.Parse()
 
+	// TODO: http.serve should call launchPod function, by passing the projectName
+
 	launchK8sDeployment(clientset, jobName, containerImage, entryCommand)
 
 	//launchK8sIngress(clientset, "coder-x-ingress", entryCommand)
 }
 
+// FIXME: remove
 func launchK8sIngress(clientset *kubernetes.Clientset, ingressName string, cmd *string) {
 
 	ingressClient := clientset.ExtensionsV1beta1().Ingresses("infra")
