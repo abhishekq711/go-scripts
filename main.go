@@ -137,12 +137,12 @@ func exitErrorf(msg string, args ...interface{}) {
 // }
 
 func launchK8sPod(clientset *kubernetes.Clientset, podName *string, image *string, cmd *string) {
-	pods := clientset.CoreV1().Pods("kube-system")
+	pods := clientset.CoreV1().Pods("infra")
 
 	podSpec := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      *podName,
-			Namespace: "kube-system",
+			Namespace: "infra",
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
@@ -154,10 +154,26 @@ func launchK8sPod(clientset *kubernetes.Clientset, podName *string, image *strin
 							ContainerPort: 8080,
 						},
 					},
+					Env: []v1.EnvVar{
+						{
+							Name:  "PASSWORD",
+							Value: "mypass",
+						},
+					},
 					VolumeMounts: []v1.VolumeMount{
 						{
 							Name:      "project",
 							MountPath: "/home/abhishek/Downloads/my-project",
+						},
+					},
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: "project",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Path: "/home/abhishek/Downloads/rest-scripts",
 						},
 					},
 				},
@@ -236,7 +252,7 @@ func main() {
 
 	jobName := flag.String("podname", "coder-x", "The name of the pod")
 	containerImage := flag.String("image", "codercom/code-server", "Name of the container image")
-	entryCommand := flag.String("command", "", "The command to run inside the container")
+	entryCommand := flag.String("command", "ls", "The command to run inside the container")
 
 	flag.Parse()
 
