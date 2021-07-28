@@ -1,7 +1,3 @@
-kubectl
 coder-1/
-myproject/*
-go.mod
-go.sum
-kubectl
 my-project.zip
+myproject/*
