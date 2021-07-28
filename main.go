@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"net/http"
 	"path/filepath"
 
 	"github.com/rest-scripts/utils"
@@ -56,6 +58,9 @@ func main() {
 
 	utils.ListAllK8Pods(clientset)
 
+	http.HandleFunc("/", greet)
+	http.ListenAndServe(":8080", nil)
+
 	// jobName := flag.String("podname", "coder-x", "The name of the pod")
 	// containerImage := flag.String("image", "codercom/code-server", "Name of the container image")
 	// entryCommand := flag.String("command", "ls", "The command to run inside the container")
@@ -64,4 +69,15 @@ func main() {
 
 	// utils.LaunchK8sPod(clientset, jobName, containerImage, entryCommand)
 
+}
+
+func greet(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method == "GET" {
+		fmt.Fprintf(w, "URL GET parameter: %v\n", r.RequestURI)
+		// ... process it, will be the first (only) if multiple were given
+		// note: if they pass in like ?param1=&param2= param1 will also be "" :|
+	} else {
+		fmt.Fprintf(w, "Invalid method, expected GET Method, received %v method\n", r.Method)
+	}
 }

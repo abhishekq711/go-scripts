@@ -10,15 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-// func greet(w http.ResponseWriter, r *http.Request) {
-// 	fmt.Fprintf(w, "Hello World! %s", time.Now())
-// }
-
-// func main() {
-// 	http.HandleFunc("/", greet)
-// 	http.ListenAndServe(":8080", nil)
-// }
-
 func DownloadObject(bucket, item, region string) {
 
 	file, err := os.Create(item)
