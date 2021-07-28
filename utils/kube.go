@@ -52,7 +52,7 @@ func LaunchK8sPod(clientset *kubernetes.Clientset, podName *string, image *strin
 					VolumeMounts: []v1.VolumeMount{
 						{
 							Name:      "project",
-							MountPath: "/home/abhishek/Downloads/my-project",
+							MountPath: "/home/abhishek/Downloads/rest-scripts/myprojects",
 						},
 					},
 				},

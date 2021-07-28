@@ -1,12 +1,17 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/rest-scripts/utils"
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 const (
@@ -20,41 +25,9 @@ func main() {
 	defer logger.Sync() // flushes buffer, if any
 	zap.ReplaceGlobals(logger)
 
-	// var kubeconfig *string
-	// if home := homedir.HomeDir(); home != "" {
-	// 	kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
-	// } else {
-	// 	kubeconfig = flag.String("kubeconfig", "", "/home/abhishek/.kube/config")
-	// }
-	// flag.Parse()
-
-	// sugar.Infof("Kubeconfig file path used: %s", *kubeconfig)
-
-	// // use the current context in kubeconfig
-	// config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	// if err != nil {
-	// 	sugar.Errorf("Unable to build kube config. Exiting with err %v", err.Error())
-	// }
-
-	// // create the clientset
-	// clientset, err := kubernetes.NewForConfig(config)
-	// if err != nil {
-	// 	sugar.Errorf("Unable to create kube clientset. Exiting with err %v", err.Error())
-	// }
-
-	// utils.ListAllK8Pods(clientset)
-
 	http.HandleFunc("/", handleRequest)
 	http.HandleFunc("/favicon.ico", favicon)
 	http.ListenAndServe(":8080", nil)
-
-	// jobName := flag.String("podname", "coder-x", "The name of the pod")
-	// containerImage := flag.String("image", "codercom/code-server", "Name of the container image")
-	// entryCommand := flag.String("command", "ls", "The command to run inside the container")
-
-	// flag.Parse()
-
-	// utils.LaunchK8sPod(clientset, jobName, containerImage, entryCommand)
 
 }
 
@@ -89,12 +62,45 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func nextStep(item string) {
-	err := utils.Unzip(item, "myproject")
+	err := utils.Unzip(item, "myprojects")
 	if err != nil {
-		zap.L().Error("Failed unzip file")
-	} else {
-		zap.L().Info("File unziping successful")
+		zap.L().Error("Failed to unzip file")
+		return
 	}
+	zap.L().Info("File unziping successful")
+
+	var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "/home/abhishek/.kube/config")
+	}
+	flag.Parse()
+
+	zap.L().Info("Kubeconfig file path used: " + *kubeconfig)
+
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		zap.L().Error("Unable to build kube config. Exiting with err " + err.Error())
+	}
+
+	// create the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		zap.L().Error("Unable to create kube clientset. Exiting with err " + err.Error())
+	}
+
+	utils.ListAllK8Pods(clientset)
+
+	jobName := flag.String("podname", "coder-x", "The name of the pod")
+	containerImage := flag.String("image", "codercom/code-server", "Name of the container image")
+	entryCommand := flag.String("command", "ls", "The command to run inside the container")
+
+	flag.Parse()
+
+	utils.LaunchK8sPod(clientset, jobName, containerImage, entryCommand)
+
 }
 
 func favicon(w http.ResponseWriter, r *http.Request) {
