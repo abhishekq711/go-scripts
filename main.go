@@ -20,31 +20,6 @@ func exitErrorf(msg string, args ...interface{}) {
 	os.Exit(1)
 }
 
-// func getS3Buckets(region string) {
-// 	sess, err := session.NewSession(&aws.Config{
-// 		Region: aws.String(region)},
-// 	)
-
-// 	if err != nil {
-// 		exitErrorf("Unable to create a new session, %v", err)
-// 	}
-
-// 	// Create S3 service client
-// 	svc := s3.New(sess)
-
-// 	result, err := svc.ListBuckets(nil)
-// 	if err != nil {
-// 		exitErrorf("Unable to list buckets, %v", err)
-// 	}
-
-// 	fmt.Println("Buckets:")
-
-// 	for _, b := range result.Buckets {
-// 		fmt.Printf("* %s created on %s\n",
-// 			aws.StringValue(b.Name), aws.TimeValue(b.CreationDate))
-// 	}
-// }
-
 // func DownloadObject(bucket, item, region string) {
 
 // 	file, err := os.Create(item)
