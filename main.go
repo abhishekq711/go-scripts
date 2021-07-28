@@ -44,7 +44,8 @@ func main() {
 
 	// utils.ListAllK8Pods(clientset)
 
-	http.HandleFunc("/", greet)
+	http.HandleFunc("/", handleRequest)
+	http.HandleFunc("/favicon.ico", favicon)
 	http.ListenAndServe(":8080", nil)
 
 	// jobName := flag.String("podname", "coder-x", "The name of the pod")
@@ -57,7 +58,7 @@ func main() {
 
 }
 
-func greet(w http.ResponseWriter, r *http.Request) {
+func handleRequest(w http.ResponseWriter, r *http.Request) {
 	//ScriptApi.zip
 	if r.Method != "GET" {
 		fmt.Fprintf(w, "Invalid method, expected GET Method, received %v method\n", r.Method)
@@ -73,18 +74,32 @@ func greet(w http.ResponseWriter, r *http.Request) {
 		zap.L().Error("Bucket and item names required, no bucket name specified\n")
 	}
 
+	//TODO-> this check of file is incomplete, need to make it right
 	if _, err := os.Stat(item); err == nil {
 		zap.L().Info("File is already downloaded, skipping download step...")
-
+		nextStep(item)
 	} else {
-		utils.DownloadObject(BUCKET_NAME, item, AWS_REGION)
-		zap.L().Info("File download from aws s3 bucket successful")
+		err := utils.DownloadObject(BUCKET_NAME, item, AWS_REGION)
+		if err != nil {
+			zap.L().Error(fmt.Sprintf("Download failed with error: %v", err))
+		} else {
+			nextStep(item)
+		}
 	}
+}
 
+func nextStep(item string) {
 	err := utils.Unzip(item, "myproject")
 	if err != nil {
 		zap.L().Error("Failed unzip file")
 	} else {
 		zap.L().Info("File unziping successful")
 	}
+}
+
+func favicon(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("%s\n", r.RequestURI)
+	w.Header().Set("Content-Type", "image/x-icon")
+	w.Header().Set("Cache-Control", "public, max-age=7776000")
+	fmt.Fprintln(w, "data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=")
 }
