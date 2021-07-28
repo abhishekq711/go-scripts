@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"path/filepath"
 
 	"github.com/rest-scripts/utils"
@@ -16,8 +15,6 @@ import (
 func main() {
 
 	// var region string = "ap-south-1"
-
-	// getS3Buckets(region)
 
 	// if len(os.Args) != 3 {
 	// 	exitErrorf("Bucket and item names required\nUsage: %s bucket_name item_name",
@@ -33,6 +30,7 @@ func main() {
 
 	logger, _ := zap.NewProduction()
 	defer logger.Sync() // flushes buffer, if any
+	sugar := logger.Sugar()
 
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -42,7 +40,7 @@ func main() {
 	}
 	flag.Parse()
 
-	fmt.Println(*kubeconfig)
+	sugar.Infof("Kubeconfig file path used: %s", *kubeconfig)
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
@@ -53,17 +51,17 @@ func main() {
 	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		sugar.Errorf("Unable to create kube clientset. Exiting with err %v", err.Error())
 	}
 
 	utils.ListAllK8Pods(clientset)
 
-	jobName := flag.String("podname", "coder-x", "The name of the pod")
-	containerImage := flag.String("image", "codercom/code-server", "Name of the container image")
-	entryCommand := flag.String("command", "ls", "The command to run inside the container")
+	// jobName := flag.String("podname", "coder-x", "The name of the pod")
+	// containerImage := flag.String("image", "codercom/code-server", "Name of the container image")
+	// entryCommand := flag.String("command", "ls", "The command to run inside the container")
 
-	flag.Parse()
+	// flag.Parse()
 
-	utils.LaunchK8sPod(clientset, jobName, containerImage, entryCommand)
+	// utils.LaunchK8sPod(clientset, jobName, containerImage, entryCommand)
 
 }
