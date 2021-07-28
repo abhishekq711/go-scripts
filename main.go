@@ -1,62 +1,48 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
-	"path/filepath"
+	"os"
 
 	"github.com/rest-scripts/utils"
 	"go.uber.org/zap"
+)
 
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
+const (
+	BUCKET_NAME string = "codercom-code-server"
+	AWS_REGION  string = "ap-south-1"
 )
 
 func main() {
 
-	// var region string = "ap-south-1"
-
-	// if len(os.Args) != 3 {
-	// 	exitErrorf("Bucket and item names required\nUsage: %s bucket_name item_name",
-	// 		os.Args[0])
-	// }
-
-	// bucket := os.Args[1]
-	// item := os.Args[2]
-
-	// DownloadObject(bucket, item, region)
-
-	// fmt.Println(Unzip("./my-project.zip", "./myproject"))
-
 	logger, _ := zap.NewProduction()
 	defer logger.Sync() // flushes buffer, if any
-	sugar := logger.Sugar()
+	zap.ReplaceGlobals(logger)
 
-	var kubeconfig *string
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "/home/abhishek/.kube/config")
-	}
-	flag.Parse()
+	// var kubeconfig *string
+	// if home := homedir.HomeDir(); home != "" {
+	// 	kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
+	// } else {
+	// 	kubeconfig = flag.String("kubeconfig", "", "/home/abhishek/.kube/config")
+	// }
+	// flag.Parse()
 
-	sugar.Infof("Kubeconfig file path used: %s", *kubeconfig)
+	// sugar.Infof("Kubeconfig file path used: %s", *kubeconfig)
 
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		panic(err.Error())
-	}
+	// // use the current context in kubeconfig
+	// config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	// if err != nil {
+	// 	sugar.Errorf("Unable to build kube config. Exiting with err %v", err.Error())
+	// }
 
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		sugar.Errorf("Unable to create kube clientset. Exiting with err %v", err.Error())
-	}
+	// // create the clientset
+	// clientset, err := kubernetes.NewForConfig(config)
+	// if err != nil {
+	// 	sugar.Errorf("Unable to create kube clientset. Exiting with err %v", err.Error())
+	// }
 
-	utils.ListAllK8Pods(clientset)
+	// utils.ListAllK8Pods(clientset)
 
 	http.HandleFunc("/", greet)
 	http.ListenAndServe(":8080", nil)
@@ -72,12 +58,33 @@ func main() {
 }
 
 func greet(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method == "GET" {
-		fmt.Fprintf(w, "URL GET parameter: %v\n", r.RequestURI)
-		// ... process it, will be the first (only) if multiple were given
-		// note: if they pass in like ?param1=&param2= param1 will also be "" :|
-	} else {
+	//ScriptApi.zip
+	if r.Method != "GET" {
 		fmt.Fprintf(w, "Invalid method, expected GET Method, received %v method\n", r.Method)
+		zap.L().Error("Invalid method, expected GET Method\n")
+	}
+
+	item := r.RequestURI[1:]
+	fmt.Fprintf(w, "URL GET parameter: %v\n", item)
+	zap.L().Info("URL GET parameter: " + item)
+
+	if item == "/" {
+		fmt.Fprintf(w, "Bucket and item names required, no bucket name specified\n")
+		zap.L().Error("Bucket and item names required, no bucket name specified\n")
+	}
+
+	if _, err := os.Stat(item); err == nil {
+		zap.L().Info("File is already downloaded, skipping download step...")
+
+	} else {
+		utils.DownloadObject(BUCKET_NAME, item, AWS_REGION)
+		zap.L().Info("File download from aws s3 bucket successful")
+	}
+
+	err := utils.Unzip(item, "myproject")
+	if err != nil {
+		zap.L().Error("Failed unzip file")
+	} else {
+		zap.L().Info("File unziping successful")
 	}
 }
