@@ -65,6 +65,13 @@ func LaunchK8sPod(clientset *kubernetes.Clientset, podName *string, image *strin
 							Path: "/home/abhishek/Downloads/rest-scripts",
 							Type: (*v1.HostPathType)(Strptr("DirectoryOrCreate")),
 						},
+						// NFS: &v1.NFSVolumeSource{
+						// 	Server: "nfs-server-ip-address",
+						// 	Path:   "/dir/path/on/nfs/server",
+						// },
+						// PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+						// 	ClaimName: "efs-claim",
+						// },
 					},
 				},
 			},
