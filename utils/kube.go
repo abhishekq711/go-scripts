@@ -2,26 +2,50 @@ package utils
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"log"
+	"path/filepath"
 
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
+
+func GetKubeClient() (*kubernetes.Clientset, error) {
+	var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "/home/abhishek/.kube/config", "")
+	}
+	flag.Parse()
+
+	zap.L().Info("Kubeconfig file path used: " + *kubeconfig)
+
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		zap.L().Error("Unable to build kube config. Exiting with err " + err.Error())
+	}
+
+	return kubernetes.NewForConfig(config)
+}
 
 func ListAllK8Pods(clientset *kubernetes.Clientset) {
 
 	nodeList, err := clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 
 	if err != nil {
-		ExitErrorf("Unable to list nodes, %v", err)
+		zap.L().Error("Unable to list nodes, " + err.Error())
 	}
 
-	fmt.Println(len(nodeList.Items))
+	zap.L().Info(fmt.Sprintf("Total number of nodes: %d", len(nodeList.Items)))
 
 	for m, n := range nodeList.Items {
-		fmt.Println(m, n.Name)
+		zap.L().Info(fmt.Sprintf("%d %s", m, n.Name))
 	}
 }
 
@@ -52,7 +76,7 @@ func LaunchK8sPod(clientset *kubernetes.Clientset, podName *string, image *strin
 					VolumeMounts: []v1.VolumeMount{
 						{
 							Name:      "project",
-							MountPath: "/home/abhishek/Downloads/my-project",
+							MountPath: "/home/abhishek/Downloads/rest-scripts/myprojects",
 						},
 					},
 				},
@@ -65,6 +89,13 @@ func LaunchK8sPod(clientset *kubernetes.Clientset, podName *string, image *strin
 							Path: "/home/abhishek/Downloads/rest-scripts",
 							Type: (*v1.HostPathType)(Strptr("DirectoryOrCreate")),
 						},
+						// NFS: &v1.NFSVolumeSource{
+						// 	Server: "nfs-server-ip-address",
+						// 	Path:   "/dir/path/on/nfs/server",
+						// },
+						// PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+						// 	ClaimName: "efs-claim",
+						// },
 					},
 				},
 			},
@@ -74,8 +105,8 @@ func LaunchK8sPod(clientset *kubernetes.Clientset, podName *string, image *strin
 
 	_, err := pods.Create(context.Background(), podSpec, metav1.CreateOptions{})
 	if err != nil {
-		log.Fatalln("Failed to create K8s pod, ", err)
+		zap.L().Fatal(fmt.Sprintf("Failed to create K8s pod, %v", err))
 	}
 
-	log.Println("Created K8s pod successfully")
+	zap.L().Info("Created K8s pod successfully")
 }

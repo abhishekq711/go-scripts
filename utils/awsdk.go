@@ -8,29 +8,17 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
+	"go.uber.org/zap"
 )
 
-// func greet(w http.ResponseWriter, r *http.Request) {
-// 	fmt.Fprintf(w, "Hello World! %s", time.Now())
-// }
-
-// func main() {
-// 	http.HandleFunc("/", greet)
-// 	http.ListenAndServe(":8080", nil)
-// }
-
-func DownloadObject(bucket, item, region string) {
+func DownloadObject(bucket, item string, sess *session.Session) error {
 
 	file, err := os.Create(item)
 	if err != nil {
-		ExitErrorf("Unable to open file %q, %v", item, err)
+		return err
 	}
-
 	defer file.Close()
-
-	sess, _ := session.NewSession(&aws.Config{
-		Region: aws.String(region)},
-	)
 
 	downloader := s3manager.NewDownloader(sess)
 
@@ -40,8 +28,9 @@ func DownloadObject(bucket, item, region string) {
 			Key:    aws.String(item),
 		})
 	if err != nil {
-		ExitErrorf("Unable to download item %q, %v", item, err)
+		os.Remove(item)
+		return err
 	}
-
-	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
+	zap.L().Info(fmt.Sprintf("Downloaded %s %d bytes", file.Name(), numBytes))
+	return nil
 }

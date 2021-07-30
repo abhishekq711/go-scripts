@@ -3,60 +3,82 @@ package main
 import (
 	"flag"
 	"fmt"
-	"path/filepath"
+	"net/http"
+	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/rest-scripts/utils"
 	"go.uber.org/zap"
+)
 
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
+const (
+	S3_BUCKET  string = "codercom-code-server"
+	AWS_REGION string = "ap-south-1"
 )
 
 func main() {
 
-	// var region string = "ap-south-1"
-
-	// getS3Buckets(region)
-
-	// if len(os.Args) != 3 {
-	// 	exitErrorf("Bucket and item names required\nUsage: %s bucket_name item_name",
-	// 		os.Args[0])
-	// }
-
-	// bucket := os.Args[1]
-	// item := os.Args[2]
-
-	// DownloadObject(bucket, item, region)
-
-	// fmt.Println(Unzip("./my-project.zip", "./myproject"))
-
 	logger, _ := zap.NewProduction()
 	defer logger.Sync() // flushes buffer, if any
+	zap.ReplaceGlobals(logger)
 
-	var kubeconfig *string
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
+	http.HandleFunc("/", handleRequest)
+	http.HandleFunc("/favicon.ico", favicon)
+	http.ListenAndServe(":8080", nil)
+
+}
+
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+	//ScriptApi.zip
+	if r.Method != "GET" {
+		fmt.Fprintf(w, "Invalid method, expected GET Method, received %v method\n", r.Method)
+		zap.L().Error(fmt.Sprintf("Invalid method, expected GET Method, received %v method\n", r.Method))
+	}
+
+	item := r.RequestURI[1:]
+	fmt.Fprintf(w, "URL GET parameter: %v\n", item)
+	zap.L().Info("URL GET parameter: " + item)
+
+	if item == "/" {
+		fmt.Fprintf(w, "item/project name in the bucket required, no name specified\n")
+		zap.L().Error("item/project name in the bucket required, no name specified\n")
+	}
+
+	//TODO-> this check of file is incomplete, need to make it right
+	if _, err := os.Stat(item); err == nil {
+		zap.L().Info("File is already downloaded, skipping download step...")
+		nextStep(item)
 	} else {
-		kubeconfig = flag.String("kubeconfig", "", "/home/abhishek/.kube/config")
+		aws_sess, _ := session.NewSession(&aws.Config{
+			Region: aws.String(AWS_REGION)},
+		)
+		err := utils.DownloadObject(S3_BUCKET, item, aws_sess)
+		if err != nil {
+			zap.L().Error(fmt.Sprintf("Download failed with error: %v", err))
+		} else {
+			nextStep(item)
+		}
 	}
-	flag.Parse()
+}
 
-	fmt.Println(*kubeconfig)
-
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+func nextStep(item string) {
+	err := utils.Unzip(item, "myprojects")
 	if err != nil {
-		panic(err.Error())
+		zap.L().Fatal("Failed to unzip file")
+		return
 	}
+	zap.L().Info("File unziping successful")
 
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	// build and create the clientset
+	clientset, err := utils.GetKubeClient()
 	if err != nil {
-		panic(err.Error())
+		zap.L().Error("Unable to create kube clientset. Exiting with err " + err.Error())
+		return
 	}
+	zap.L().Info("clientset created successfully")
 
-	utils.ListAllK8Pods(clientset)
+	// utils.ListAllK8Pods(clientset)
 
 	jobName := flag.String("podname", "coder-x", "The name of the pod")
 	containerImage := flag.String("image", "codercom/code-server", "Name of the container image")
@@ -66,4 +88,11 @@ func main() {
 
 	utils.LaunchK8sPod(clientset, jobName, containerImage, entryCommand)
 
+}
+
+func favicon(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("%s\n", r.RequestURI)
+	w.Header().Set("Content-Type", "image/x-icon")
+	w.Header().Set("Cache-Control", "public, max-age=7776000")
+	fmt.Fprintln(w, "data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=")
 }
