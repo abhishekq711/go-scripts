@@ -35,7 +35,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	//ScriptApi.zip
 	if r.Method != "GET" {
 		fmt.Fprintf(w, "Invalid method, expected GET Method, received %v method\n", r.Method)
-		zap.L().Error("Invalid method, expected GET Method\n")
+		zap.L().Error(fmt.Sprintf("Invalid method, expected GET Method, received %v method\n", r.Method))
 	}
 
 	item := r.RequestURI[1:]
@@ -43,8 +43,8 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	zap.L().Info("URL GET parameter: " + item)
 
 	if item == "/" {
-		fmt.Fprintf(w, "Bucket and item names required, no bucket name specified\n")
-		zap.L().Error("Bucket and item names required, no bucket name specified\n")
+		fmt.Fprintf(w, "item/project name in the bucket required, no name specified\n")
+		zap.L().Error("item/project name in the bucket required, no name specified\n")
 	}
 
 	//TODO-> this check of file is incomplete, need to make it right
@@ -64,7 +64,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 func nextStep(item string) {
 	err := utils.Unzip(item, "myprojects")
 	if err != nil {
-		zap.L().Error("Failed to unzip file")
+		zap.L().Fatal("Failed to unzip file")
 		return
 	}
 	zap.L().Info("File unziping successful")
