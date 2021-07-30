@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	BUCKET_NAME string = "codercom-code-server"
-	AWS_REGION  string = "ap-south-1"
+	S3_BUCKET  string = "codercom-code-server"
+	AWS_REGION string = "ap-south-1"
 )
 
 func main() {
@@ -53,7 +53,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		aws_sess, _ := session.NewSession(&aws.Config{
 			Region: aws.String(AWS_REGION)},
 		)
-		err := utils.DownloadObject(BUCKET_NAME, item, aws_sess)
+		err := utils.DownloadObject(S3_BUCKET, item, aws_sess)
 		if err != nil {
 			zap.L().Error(fmt.Sprintf("Download failed with error: %v", err))
 		} else {
