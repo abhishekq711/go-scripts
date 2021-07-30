@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/rest-scripts/utils"
 	"go.uber.org/zap"
 )
@@ -48,7 +50,10 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		zap.L().Info("File is already downloaded, skipping download step...")
 		nextStep(item)
 	} else {
-		err := utils.DownloadObject(BUCKET_NAME, item, AWS_REGION)
+		aws_sess, _ := session.NewSession(&aws.Config{
+			Region: aws.String(AWS_REGION)},
+		)
+		err := utils.DownloadObject(BUCKET_NAME, item, aws_sess)
 		if err != nil {
 			zap.L().Error(fmt.Sprintf("Download failed with error: %v", err))
 		} else {

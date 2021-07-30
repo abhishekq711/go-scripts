@@ -2,13 +2,37 @@ package utils
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"path/filepath"
 
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
+
+func GetKubeClient() (*kubernetes.Clientset, error) {
+	var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "/home/abhishek/.kube/config", "")
+	}
+	flag.Parse()
+
+	zap.L().Info("Kubeconfig file path used: " + *kubeconfig)
+
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		zap.L().Error("Unable to build kube config. Exiting with err " + err.Error())
+	}
+
+	return kubernetes.NewForConfig(config)
+}
 
 func ListAllK8Pods(clientset *kubernetes.Clientset) {
 

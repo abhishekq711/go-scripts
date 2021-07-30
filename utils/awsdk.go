@@ -12,18 +12,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func DownloadObject(bucket, item, region string) error {
+func DownloadObject(bucket, item string, sess *session.Session) error {
 
 	file, err := os.Create(item)
 	if err != nil {
 		return err
 	}
-
 	defer file.Close()
-
-	sess, _ := session.NewSession(&aws.Config{
-		Region: aws.String(region)},
-	)
 
 	downloader := s3manager.NewDownloader(sess)
 
