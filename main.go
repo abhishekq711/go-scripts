@@ -5,13 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/rest-scripts/utils"
 	"go.uber.org/zap"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 const (
@@ -69,29 +65,15 @@ func nextStep(item string) {
 	}
 	zap.L().Info("File unziping successful")
 
-	var kubeconfig *string
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "/home/abhishek/.kube/config", "")
-	}
-	flag.Parse()
-
-	zap.L().Info("Kubeconfig file path used: " + *kubeconfig)
-
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		zap.L().Error("Unable to build kube config. Exiting with err " + err.Error())
-	}
-
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	// build and create the clientset
+	clientset, err := utils.GetKubeClient()
 	if err != nil {
 		zap.L().Error("Unable to create kube clientset. Exiting with err " + err.Error())
+		return
 	}
+	zap.L().Info("clientset created successfully")
 
-	utils.ListAllK8Pods(clientset)
+	// utils.ListAllK8Pods(clientset)
 
 	jobName := flag.String("podname", "coder-x", "The name of the pod")
 	containerImage := flag.String("image", "codercom/code-server", "Name of the container image")
