@@ -73,7 +73,7 @@ func nextStep(item string) {
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube/config"), "/home/abhishek/.kube/config")
 	} else {
-		kubeconfig = flag.String("kubeconfig", "", "/home/abhishek/.kube/config")
+		kubeconfig = flag.String("kubeconfig", "/home/abhishek/.kube/config", "")
 	}
 	flag.Parse()
 
