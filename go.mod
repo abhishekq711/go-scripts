@@ -1,4 +1,4 @@
-module github.com/rest-scripts
+module github.com/go-code-server
 
 go 1.16
 

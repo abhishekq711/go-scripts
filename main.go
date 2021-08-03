@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/rest-scripts/utils"
+	"github.com/go-code-server/utils"
 	"go.uber.org/zap"
 )
 
