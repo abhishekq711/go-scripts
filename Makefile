@@ -10,7 +10,13 @@ export $(shell sed 's/=.*//' $(dpl))
 build: ## Build the container
 	docker build -t $(APP_NAME) .
 
-run: ## Run container on port configured in `config.env`
-	docker run -d -p=$(PORT):$(PORT) --name="$(APP_NAME)" $(APP_NAME)
 
-up: build run ## Run container on port configured in `config.env` (Alias to run)
+.PHONY: run
+run:
+	go run main.go
+
+# .PHONY: run
+# run: ## Run container on port configured in `deploy.env`
+# 	docker run -i -t -d -p=$(PORT):$(PORT) --name="$(APP_NAME)" $(APP_NAME)
+
+# up: build run ## Run container on port configured in `config.env` (Alias to run)
