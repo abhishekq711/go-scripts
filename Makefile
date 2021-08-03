@@ -10,7 +10,7 @@ all: build
 
 .PHONY: build
 build:
-	CGO_ENABLED=0 go build
+	CGO_ENABLED=0 go build -o go-code-server
 
 # DOCKER TASKS
 # Build the container
