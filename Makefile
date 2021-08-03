@@ -5,18 +5,36 @@ include $(dpl)
 export $(shell sed 's/=.*//' $(dpl))
 
 
+.PHONY: all
+all: build
+
+.PHONY: build
+build:
+	CGO_ENABLED=0 go build
+
 # DOCKER TASKS
 # Build the container
-build: ## Build the container
+.PHONY: image
+image: ## Build the container
 	docker build -t $(APP_NAME) .
 
-
+# Run go program from the entrypoint
 .PHONY: run
 run:
 	go run main.go
 
-# .PHONY: run
-# run: ## Run container on port configured in `deploy.env`
-# 	docker run -i -t -d -p=$(PORT):$(PORT) --name="$(APP_NAME)" $(APP_NAME)
 
-# up: build run ## Run container on port configured in `config.env` (Alias to run)
+# Gofmt is a tool that automatically formats Go source code.
+.PHONY: fmt
+fmt:
+	gofmt -s -w .
+
+# Vet examines Go source code and reports suspicious constructs, 
+# such as Printf calls whose arguments do not align with the format string
+.PHONY: vet
+vet:
+	go vet .
+
+.PHONY: clean
+clean:
+	rm -f go-code-server
