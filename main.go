@@ -23,6 +23,7 @@ func main() {
 	defer logger.Sync() // flushes buffer, if any
 	zap.ReplaceGlobals(logger)
 
+	//e.g. /ScriptApi.zip
 	http.HandleFunc("/", handleRequest)
 	http.HandleFunc("/favicon.ico", favicon)
 	http.ListenAndServe(":8080", nil)
@@ -30,24 +31,19 @@ func main() {
 }
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
-	//ScriptApi.zip
 	if r.Method != "GET" {
 		fmt.Fprintf(w, "Invalid method, expected GET Method, received %v method\n", r.Method)
 		zap.L().Error(fmt.Sprintf("Invalid method, expected GET Method, received %v method\n", r.Method))
 	}
 
 	item := r.RequestURI[1:]
-	fmt.Fprintf(w, "URL GET parameter: %v\n", item)
-	zap.L().Info("URL GET parameter: " + item)
+	fmt.Fprintf(w, "URL GET parameter (this is also name of file): %s\n", item)
+	zap.L().Info("URL GET parameter (this is also name of file): " + item)
 
-	if item == "/" {
-		fmt.Fprintf(w, "item/project name in the bucket required, no name specified\n")
-		zap.L().Error("item/project name in the bucket required, no name specified\n")
-	}
-
-	//TODO-> this check of file is incomplete, need to make it right
+	//Downloading the project from s3 bucket and then move to nextStep function
 	if _, err := os.Stat(item); err == nil {
-		zap.L().Info("File is already downloaded, skipping download step...")
+		//TODO-> this check of file is incomplete, need to make it right
+		zap.L().Info("File appears to be already downloaded, skipping download step...")
 		nextStep(item)
 	} else {
 		aws_sess, _ := session.NewSession(&aws.Config{
@@ -55,13 +51,15 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		)
 		err := utils.DownloadObject(S3_BUCKET, item, aws_sess)
 		if err != nil {
-			zap.L().Error(fmt.Sprintf("Download failed with error: %v", err))
+			fmt.Fprintf(w, "Cannot download the specified file (filename: %s), make sure filename/path is correct and check logs for more info\n", item)
+			zap.L().Error(fmt.Sprintf("Download (of filename: %s) failed with error: %v", item, err))
 		} else {
 			nextStep(item)
 		}
 	}
 }
 
+// Unziping and pod launching
 func nextStep(item string) {
 	err := utils.Unzip(item, "myprojects")
 	if err != nil {
@@ -90,6 +88,7 @@ func nextStep(item string) {
 
 }
 
+//handling favicon uri
 func favicon(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("%s\n", r.RequestURI)
 	w.Header().Set("Content-Type", "image/x-icon")
